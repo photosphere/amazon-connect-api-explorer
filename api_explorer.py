@@ -30,6 +30,10 @@ api_params = {
     "ListProfileObjects": {
         "service": "customer-profiles",
         "params": ["DomainName", "ObjectTypeName", "ProfileId", "MaxResults"]
+    },
+    "SearchProfiles": {
+        "service": "customer-profiles",
+        "params": ["DomainName", "KeyName", "Values", "MaxResults"]
     }
 }
 
@@ -42,7 +46,8 @@ selected_service = st.selectbox("选择服务", service_options)
 if selected_service == "Amazon Connect Service":
     selected_api = st.selectbox("选择API", ["DescribeContact"])
 elif selected_service == "Amazon Connect Customer Profiles":
-    selected_api = st.selectbox("选择API", ["ListProfileObjects"])
+    selected_api = st.selectbox(
+        "选择API", ["ListProfileObjects", "SearchProfiles"])
 
 # 显示API参数输入框
 st.subheader(f"{selected_api} 参数")
@@ -67,6 +72,10 @@ if selected_api in api_params:
             help_text = "资料对象类型名称"
         elif param == "ProfileId":
             help_text = "联系人资料 ID"
+        elif param == "KeyName":
+            help_text = "要搜索的键名"
+        elif param == "Values":
+            help_text = "要搜索的值（多个值用逗号分隔）"
 
         param_values[param] = st.text_input(
             f"{param}", value=default_value, help=help_text)
@@ -97,6 +106,20 @@ if st.button("运行"):
 
                 response = client.list_profile_objects(**api_args)
 
+            elif selected_api == "SearchProfiles":
+                client = get_aws_client("customer-profiles")
+                # 处理可选参数
+                api_args = {
+                    "DomainName": param_values["DomainName"],
+                    "KeyName": param_values["KeyName"],
+                    "Values": param_values["Values"].split(","),
+                }
+
+                if param_values["MaxResults"]:
+                    api_args["MaxResults"] = int(param_values["MaxResults"])
+
+                response = client.search_profiles(**api_args)
+
             # 显示结果
             st.subheader("API 响应结果")
 
@@ -105,6 +128,11 @@ if st.button("运行"):
 
             # 如果结果中包含项目列表，也可以显示为表格
             if selected_api == "ListProfileObjects" and "Items" in response and response["Items"]:
+                st.subheader("结果表格视图")
+                df = pd.DataFrame(response["Items"])
+                st.dataframe(df)
+
+            elif selected_api == "SearchProfiles" and "Items" in response and response["Items"]:
                 st.subheader("结果表格视图")
                 df = pd.DataFrame(response["Items"])
                 st.dataframe(df)
