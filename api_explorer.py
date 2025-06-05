@@ -27,6 +27,10 @@ api_params = {
         "service": "connect",
         "params": ["InstanceId", "ContactId"]
     },
+    "UpdateRoutingProfileDefaultOutboundQueue": {
+        "service": "connect",
+        "params": ["InstanceId", "RoutingProfileId", "DefaultOutboundQueueId"]
+    },
     "ListProfileObjects": {
         "service": "customer-profiles",
         "params": ["DomainName", "ObjectTypeName", "ProfileId", "MaxResults"]
@@ -44,7 +48,7 @@ selected_service = st.selectbox("选择服务", service_options)
 
 # 根据所选服务显示不同的API
 if selected_service == "Amazon Connect Service":
-    selected_api = st.selectbox("选择API", ["DescribeContact"])
+    selected_api = st.selectbox("选择API", ["DescribeContact", "UpdateRoutingProfileDefaultOutboundQueue"])
 elif selected_service == "Amazon Connect Customer Profiles":
     selected_api = st.selectbox(
         "选择API", ["ListProfileObjects", "SearchProfiles"])
@@ -76,6 +80,10 @@ if selected_api in api_params:
             help_text = "要搜索的键名"
         elif param == "Values":
             help_text = "要搜索的值（多个值用逗号分隔）"
+        elif param == "RoutingProfileId":
+            help_text = "路由配置文件 ID"
+        elif param == "DefaultOutboundQueueId":
+            help_text = "默认出站队列 ID"
 
         param_values[param] = st.text_input(
             f"{param}", value=default_value, help=help_text)
@@ -106,6 +114,14 @@ if st.button("运行"):
 
                 response = client.list_profile_objects(**api_args)
 
+            elif selected_api == "UpdateRoutingProfileDefaultOutboundQueue":
+                client = get_aws_client("connect")
+                response = client.update_routing_profile_default_outbound_queue(
+                    InstanceId=param_values["InstanceId"],
+                    RoutingProfileId=param_values["RoutingProfileId"],
+                    DefaultOutboundQueueId=param_values["DefaultOutboundQueueId"]
+                )
+                
             elif selected_api == "SearchProfiles":
                 client = get_aws_client("customer-profiles")
                 # 处理可选参数
