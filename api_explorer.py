@@ -4,6 +4,7 @@ import boto3
 import json
 import pandas as pd
 
+
 # 初始化页面配置
 st.set_page_config(
     page_title="Amazon Connect API Testing Tool",
@@ -27,9 +28,17 @@ api_params = {
         "service": "connect",
         "params": ["InstanceId", "ContactId"]
     },
+    "DescribeView": {
+        "service": "connect",
+        "params": ["InstanceId", "ViewId"]
+    },
     "UpdateRoutingProfileDefaultOutboundQueue": {
         "service": "connect",
         "params": ["InstanceId", "RoutingProfileId", "DefaultOutboundQueueId"]
+    },
+    "ListInstances": {
+        "service": "connect",
+        "params": ["MaxResults", "NextToken"]
     },
     "ListProfileObjects": {
         "service": "customer-profiles",
@@ -48,7 +57,8 @@ selected_service = st.selectbox("选择服务", service_options)
 
 # 根据所选服务显示不同的API
 if selected_service == "Amazon Connect Service":
-    selected_api = st.selectbox("选择API", ["DescribeContact", "UpdateRoutingProfileDefaultOutboundQueue"])
+    selected_api = st.selectbox("选择API", [
+                                "DescribeContact", "DescribeView", "UpdateRoutingProfileDefaultOutboundQueue", "ListInstances"])
 elif selected_service == "Amazon Connect Customer Profiles":
     selected_api = st.selectbox(
         "选择API", ["ListProfileObjects", "SearchProfiles"])
@@ -66,10 +76,14 @@ if selected_api in api_params:
         if param == "MaxResults":
             default_value = "10"
             help_text = "要返回的最大结果数量"
+        elif param == "NextToken":
+            help_text = "用于分页的令牌"
         elif param == "InstanceId":
             help_text = "Amazon Connect 实例 ID"
         elif param == "ContactId":
             help_text = "联系人 ID"
+        elif param == "ViewId":
+            help_text = "视图 ID"
         elif param == "DomainName":
             help_text = "客户资料域名"
         elif param == "ObjectTypeName":
@@ -100,6 +114,13 @@ if st.button("运行"):
                     ContactId=param_values["ContactId"]
                 )
 
+            elif selected_api == "DescribeView":
+                client = get_aws_client("connect")
+                response = client.describe_view(
+                    InstanceId=param_values["InstanceId"],
+                    ViewId=param_values["ViewId"]
+                )
+
             elif selected_api == "ListProfileObjects":
                 client = get_aws_client("customer-profiles")
                 # 处理可选参数
@@ -121,7 +142,19 @@ if st.button("运行"):
                     RoutingProfileId=param_values["RoutingProfileId"],
                     DefaultOutboundQueueId=param_values["DefaultOutboundQueueId"]
                 )
-                
+
+            elif selected_api == "ListInstances":
+                client = get_aws_client("connect")
+                # 处理可选参数
+                api_args = {}
+
+                if param_values["MaxResults"]:
+                    api_args["MaxResults"] = int(param_values["MaxResults"])
+                if param_values["NextToken"]:
+                    api_args["NextToken"] = param_values["NextToken"]
+
+                response = client.list_instances(**api_args)
+
             elif selected_api == "SearchProfiles":
                 client = get_aws_client("customer-profiles")
                 # 处理可选参数
@@ -151,6 +184,11 @@ if st.button("运行"):
             elif selected_api == "SearchProfiles" and "Items" in response and response["Items"]:
                 st.subheader("结果表格视图")
                 df = pd.DataFrame(response["Items"])
+                st.dataframe(df)
+
+            elif selected_api == "ListInstances" and "InstanceSummaryList" in response and response["InstanceSummaryList"]:
+                st.subheader("结果表格视图")
+                df = pd.DataFrame(response["InstanceSummaryList"])
                 st.dataframe(df)
 
     except Exception as e:
