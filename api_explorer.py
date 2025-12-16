@@ -28,6 +28,10 @@ api_params = {
         "service": "connect",
         "params": ["InstanceId", "ContactId"]
     },
+    "DescribeInstanceAttribute": {
+        "service": "connect",
+        "params": ["InstanceId", "AttributeType"]
+    },
     "DescribeView": {
         "service": "connect",
         "params": ["InstanceId", "ViewId"]
@@ -58,7 +62,7 @@ selected_service = st.selectbox("选择服务", service_options)
 # 根据所选服务显示不同的API
 if selected_service == "Amazon Connect Service":
     selected_api = st.selectbox("选择API", [
-                                "DescribeContact", "DescribeView", "UpdateRoutingProfileDefaultOutboundQueue", "ListInstances"])
+                                "DescribeContact", "DescribeInstanceAttribute", "DescribeView", "UpdateRoutingProfileDefaultOutboundQueue", "ListInstances"])
 elif selected_service == "Amazon Connect Customer Profiles":
     selected_api = st.selectbox(
         "选择API", ["ListProfileObjects", "SearchProfiles"])
@@ -99,8 +103,31 @@ if selected_api in api_params:
         elif param == "DefaultOutboundQueueId":
             help_text = "默认出站队列 ID"
 
-        param_values[param] = st.text_input(
-            f"{param}", value=default_value, help=help_text)
+        # AttributeType 使用下拉单选框
+        if param == "AttributeType":
+            attribute_types = [
+                "INBOUND_CALLS",
+                "OUTBOUND_CALLS",
+                "CONTACTFLOW_LOGS",
+                "CONTACT_LENS",
+                "AUTO_RESOLVE_BEST_VOICES",
+                "USE_CUSTOM_TTS_VOICES",
+                "EARLY_MEDIA",
+                "MULTI_PARTY_CONFERENCE",
+                "HIGH_VOLUME_OUTBOUND",
+                "ENHANCED_CONTACT_MONITORING",
+                "ENHANCED_CHAT_MONITORING",
+                "MULTI_PARTY_CHAT_CONFERENCE",
+                "MESSAGE_STREAMING"
+            ]
+            param_values[param] = st.selectbox(
+                f"{param}",
+                options=attribute_types,
+                help="实例属性类型"
+            )
+        else:
+            param_values[param] = st.text_input(
+                f"{param}", value=default_value, help=help_text)
 
 # 运行按钮
 if st.button("运行"):
@@ -112,6 +139,13 @@ if st.button("运行"):
                 response = client.describe_contact(
                     InstanceId=param_values["InstanceId"],
                     ContactId=param_values["ContactId"]
+                )
+
+            elif selected_api == "DescribeInstanceAttribute":
+                client = get_aws_client("connect")
+                response = client.describe_instance_attribute(
+                    InstanceId=param_values["InstanceId"],
+                    AttributeType=param_values["AttributeType"]
                 )
 
             elif selected_api == "DescribeView":
