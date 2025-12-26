@@ -28,6 +28,10 @@ api_params = {
         "service": "connect",
         "params": ["InstanceId", "ContactId"]
     },
+    "DescribeEvaluationForm": {
+        "service": "connect",
+        "params": ["InstanceId", "EvaluationFormId", "EvaluationFormVersion"]
+    },
     "DescribeInstanceAttribute": {
         "service": "connect",
         "params": ["InstanceId", "AttributeType"]
@@ -62,7 +66,7 @@ selected_service = st.selectbox("选择服务", service_options)
 # 根据所选服务显示不同的API
 if selected_service == "Amazon Connect Service":
     selected_api = st.selectbox("选择API", [
-                                "DescribeContact", "DescribeInstanceAttribute", "DescribeView", "UpdateRoutingProfileDefaultOutboundQueue", "ListInstances"])
+                                "DescribeContact", "DescribeEvaluationForm", "DescribeInstanceAttribute", "DescribeView", "UpdateRoutingProfileDefaultOutboundQueue", "ListInstances"])
 elif selected_service == "Amazon Connect Customer Profiles":
     selected_api = st.selectbox(
         "选择API", ["ListProfileObjects", "SearchProfiles"])
@@ -86,6 +90,10 @@ if selected_api in api_params:
             help_text = "Amazon Connect 实例 ID"
         elif param == "ContactId":
             help_text = "联系人 ID"
+        elif param == "EvaluationFormId":
+            help_text = "评估表单 ID"
+        elif param == "EvaluationFormVersion":
+            help_text = "评估表单版本号（可选，留空获取最新版本）"
         elif param == "ViewId":
             help_text = "视图 ID"
         elif param == "DomainName":
@@ -140,6 +148,19 @@ if st.button("运行"):
                     InstanceId=param_values["InstanceId"],
                     ContactId=param_values["ContactId"]
                 )
+
+            elif selected_api == "DescribeEvaluationForm":
+                client = get_aws_client("connect")
+                # 处理可选参数 EvaluationFormVersion
+                api_args = {
+                    "InstanceId": param_values["InstanceId"],
+                    "EvaluationFormId": param_values["EvaluationFormId"]
+                }
+                
+                if param_values["EvaluationFormVersion"]:
+                    api_args["EvaluationFormVersion"] = int(param_values["EvaluationFormVersion"])
+                
+                response = client.describe_evaluation_form(**api_args)
 
             elif selected_api == "DescribeInstanceAttribute":
                 client = get_aws_client("connect")
